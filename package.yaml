@@ -21,8 +21,10 @@ ghc-options:
 dependencies:
 - base >= 4.7 && < 5
 - process
+- parsec
 - optparse-applicative
 - ansi-terminal
+- dates >= 0.2.3.0 && < 0.3
 
 library:
   source-dirs: src
@@ -35,6 +37,15 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wall
+    - -Wcompat
+    - -Widentities
+    - -Wincomplete-uni-patterns
+    - -Wincomplete-record-updates
+    - -Wpartial-fields
+    - -Wredundant-constraints
+    - -Wmissing-export-lists
+    - -fhide-source-paths
     dependencies:
     - till
 
@@ -46,5 +57,15 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wall
+    - -Wcompat
+    - -Widentities
+    - -Wincomplete-uni-patterns
+    - -Wincomplete-record-updates
+    - -Wpartial-fields
+    - -Wredundant-constraints
+    - -Wmissing-export-lists
+    - -fhide-source-paths
     dependencies:
     - till
+    - hspec
