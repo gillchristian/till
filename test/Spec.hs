@@ -86,9 +86,9 @@ main = hspec $ do
             "Neither this line"
           ]
     let lns = bothMatch ++ noMatch
-    it "matches on empty matchers list" $
-      runMatchers [] lns <=> True
-    it "does not match on empty lines list" $
+    it "does not match on no matchers" $
+      runMatchers [] lns <=> False
+    it "does not match on no lines" $
       runMatchers matchers [] <=> False
     it "does not match when none of the matchers match" $ do
       runMatchers matchers noMatch <=> False

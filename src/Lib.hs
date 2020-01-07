@@ -116,7 +116,7 @@ match (And a b) line = match a line && match b line
 match (Or a b) line = match a line || match b line
 
 runMatchers :: [Matcher] -> [Line] -> Bool
-runMatchers [] _ = True
+runMatchers [] _ = False
 runMatchers _ [] = False
 runMatchers [m] lns = any (match m) lns
 runMatchers ms lns = or (match <$> ms <*> lns)

@@ -41,6 +41,6 @@ stack install .
 - [x] Cleanup last (or first?) output (it's left after finishing, but with cleared screen, ie. can be seen when scrolling). Other option is to show last output (without scroll) and highlight match.
 - [ ] Send desktop notification on completion (opt-in). See [fdo-notify](https://hackage.haskell.org/package/fdo-notify). Optionally [play a beep sound](http://hackage.haskell.org/package/honk-1.3.0.0/docs/Sound-Honk.html) instead (also opt-in).
 - [ ] Keep track of time and/or attempts it took to finish.
-- [ ] Watch "forever" if no patterns are provided.
+- [x] Watch "forever" if no patterns are provided.
 - [ ] Highlight matches (opt-in).
 - [ ] Support multiple patterns (eg. two lines that meet same requirement, instead of only one, or two lines that match different things).
