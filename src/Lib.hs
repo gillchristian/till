@@ -139,8 +139,10 @@ emptyLine = putStrLn ""
 
 check :: Env -> IO ()
 check env = do
-  (exitCode, stdout, _) <- run $ envCmd env
-  when (not (envContinueOnError env) && isError exitCode) $ exitWith exitCode
+  (exitCode, stdout, stderr) <- run $ envCmd env
+  when (not (envContinueOnError env) && isError exitCode) $ do
+    putStrLn stderr
+    exitWith exitCode
   let content = lines stdout
   output ("$ " ++ envCmd env) content
   if runMatchers (envMatchers env) content
@@ -161,9 +163,8 @@ mkHeader header width date = header ++ space ++ "[" ++ date ++ "] "
     n = width - 3 - (length header + length date)
     space = take n $ repeat ' '
 
--- TODO: takes one tick sometimes to correct output after end
--- TODO: disable scrolling, it messes up output real bad
--- TODO: disable cursor? also messes output
+-- TODO: disable cursor?
+-- TODO: scrolling (in tmux) keeps the previous output
 output :: String -> [String] -> IO ()
 output header content = do
   now <- Dates.getCurrentDateTime
@@ -172,17 +173,10 @@ output header content = do
   -- height default: content lines count
   -- width  default: 80 because reasons /srug
   let (height, width) = maybe (length content, 80) (mapFirst $ subtract 2) mSize
-  Terminal.setCursorPosition 0 0
+  resetScreen
   putStrLn $ mkHeader header width $ time now
   emptyLine
-  mapM_ putStrLnAndClearRest $ take height content
-  Terminal.clearFromCursorToScreenEnd
-
-putStrLnAndClearRest :: String -> IO ()
-putStrLnAndClearRest line = do
-  putStr line
-  Terminal.clearFromCursorToLineEnd
-  putStr "\n"
+  mapM_ putStrLn $ take height content
 
 -- CLI Args
 type Cmd = String
@@ -250,6 +244,5 @@ runCli = do
   conf <- parseArgs confP
   case accEithers $ fmap (Parsec.parse matcher "") $ confPatterns conf of
     Right matchers -> do
-      resetScreen
       check $ confToEnv conf matchers
     Left errors -> die errors

@@ -44,3 +44,4 @@ stack install .
 - [x] Watch "forever" if no patterns are provided.
 - [ ] Highlight matches (opt-in).
 - [ ] Support multiple patterns (eg. two lines that meet same requirement, instead of only one, or two lines that match different things).
+- [x] Capture stderr and show in case of failure
