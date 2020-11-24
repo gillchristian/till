@@ -1,4 +1,5 @@
 {-# LANGUAGE NumericUnderscores #-}
+
 module Lib
   ( runCli,
     match,
@@ -105,6 +106,9 @@ lexeme p = p <* whitespace
 symbol :: String -> Parsec.Parser String
 symbol s = lexeme $ ParsecChar.string s
 
+simpleParse :: Parsec.Parser a -> String -> Either Parsec.ParseError a
+simpleParse p = Parsec.parse p ""
+
 -- Eval
 type Line = String
 
@@ -208,8 +212,8 @@ confP =
     p =
       Conf <$> Opt.argument Opt.str (Opt.metavar "CMD" <> Opt.help "Command to run")
         <*> Opt.many (Opt.argument Opt.str (Opt.metavar "PATTERN" <> Opt.help "Patterns to match against CMD's output"))
-        <*> Opt.option Opt.auto (Opt.value 2 <> Opt.long "interval" <> Opt.short 'i' <> Opt.metavar "SECONDS" <> Opt.help "The interval (in seconds) to run CMD")
-        <*> Opt.switch (Opt.long "continue-on-error" <> Opt.short 'e' <> Opt.help "Keep trying if CMD exits with non zero result")
+        <*> Opt.option Opt.auto (Opt.value 2 <> Opt.long "interval" <> Opt.metavar "SECONDS" <> Opt.help "The interval (in seconds) to run CMD")
+        <*> Opt.switch (Opt.long "continue-on-error" <> Opt.help "Keep trying if CMD exits with non zero result")
     headerText :: Maybe Doc.Doc
     headerText =
       Just $ Doc.string $
@@ -234,15 +238,17 @@ confToEnv conf matchers =
       envContinueOnError = confContinueOnError conf
     }
 
-accEithers :: Show a => [Either a b] -> Either String [b]
-accEithers eithers = case partitionEithers eithers of
+accEithers :: ([a] -> c) -> [Either a b] -> Either c [b]
+accEithers f eithers = case partitionEithers eithers of
   ([], bs) -> Right bs
-  (as, _) -> Left $ unlines $ fmap show as
+  (as, _) -> Left $ f as
+
+toParagraph :: Show a => [a] -> String
+toParagraph = unlines . fmap show
 
 runCli :: IO ()
 runCli = do
   conf <- parseArgs confP
-  case accEithers $ fmap (Parsec.parse matcher "") $ confPatterns conf of
-    Right matchers -> do
-      check $ confToEnv conf matchers
+  case accEithers toParagraph $ fmap (simpleParse matcher) $ confPatterns conf of
+    Right matchers -> check $ confToEnv conf matchers
     Left errors -> die errors
