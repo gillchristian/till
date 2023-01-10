@@ -1,5 +1,4 @@
 {-# LANGUAGE NumericUnderscores #-}
-
 module Lib
   ( runCli,
     match,
@@ -14,14 +13,14 @@ import Control.Monad (mapM_, void, when)
 import qualified Data.Dates as Dates
 import Data.Either (partitionEithers)
 import Data.List (intercalate, isInfixOf)
-import qualified Options.Applicative as Opt
 import Options.Applicative ((<**>))
+import qualified Options.Applicative as Opt
 import qualified Options.Applicative.Help.Pretty as Doc
 import qualified System.Console.ANSI as Terminal
 import System.Exit (ExitCode (..), die, exitWith)
 import qualified System.Process as Proc
-import qualified Text.Parsec as Parsec
 import Text.Parsec ((<|>))
+import qualified Text.Parsec as Parsec
 import qualified Text.Parsec.Char as ParsecChar
 import Text.Parsec.Combinator (eof)
 import qualified Text.Parsec.Expr as E
@@ -35,16 +34,16 @@ isError _ = True
 
 time :: Dates.DateTime -> String
 time d =
-  (show yr) ++ "/"
-    ++ (printf "%02d" mon)
+  show yr ++ "/"
+    ++ printf "%02d" mon
     ++ "/"
-    ++ (printf "%02d" day)
+    ++ printf "%02d" day
     ++ " "
-    ++ (printf "%02d" hr)
+    ++ printf "%02d" hr
     ++ ":"
-    ++ (printf "%02d" min')
+    ++ printf "%02d" min'
     ++ ":"
-    ++ (printf "%02d" sec)
+    ++ printf "%02d" sec
   where
     (yr, mon, day, hr, min', sec) = (Dates.year d, Dates.month d, Dates.day d, Dates.hour d, Dates.minute d, Dates.second d)
 
@@ -61,15 +60,15 @@ data Matcher
 
 doubleQuotes :: Parsec.Parser String
 doubleQuotes =
-  Parsec.between (symbol "\"") (symbol "\"")
-    $ Parsec.many1
-    $ ParsecChar.noneOf "\n\""
+  Parsec.between (symbol "\"") (symbol "\"") $
+    Parsec.many1 $
+      ParsecChar.noneOf "\n\""
 
 singleQuotes :: Parsec.Parser String
 singleQuotes =
-  Parsec.between (symbol "'") (symbol "'")
-    $ Parsec.many1
-    $ ParsecChar.noneOf "\n'"
+  Parsec.between (symbol "'") (symbol "'") $
+    Parsec.many1 $
+      ParsecChar.noneOf "\n'"
 
 term' :: Parsec.Parser String
 term' = Parsec.many1 $ ParsecChar.noneOf "\n\t !|&"
@@ -80,13 +79,12 @@ term = Pattern <$> lexeme (doubleQuotes <|> singleQuotes <|> term')
 matcher :: Parsec.Parser Matcher
 matcher =
   whitespace
-    *> ( E.buildExpressionParser
-           [ [prefix "!" negate'],
-             [binary "&" And E.AssocLeft],
-             [binary "|" Or E.AssocLeft]
-           ]
-           term
-       )
+    *> E.buildExpressionParser
+      [ [prefix "!" negate'],
+        [binary "&" And E.AssocLeft],
+        [binary "|" Or E.AssocLeft]
+      ]
+      term
     -- there should only be one expression, content should end after
     <* whitespace
     <* eof
@@ -106,12 +104,13 @@ lexeme p = p <* whitespace
 symbol :: String -> Parsec.Parser String
 symbol s = lexeme $ ParsecChar.string s
 
-simpleParse :: Parsec.Parser a -> String -> Either Parsec.ParseError a
-simpleParse p = Parsec.parse p ""
+parse :: Parsec.Parser a -> String -> Either Parsec.ParseError a
+parse p = Parsec.parse p ""
 
 -- Eval
 type Line = String
 
+-- TODO: non pattern works for a single line?
 match :: Matcher -> Line -> Bool
 match _ "" = False
 match (Pattern pattern) line = pattern `isInfixOf` line
@@ -165,7 +164,7 @@ mkHeader header width date = header ++ space ++ "[" ++ date ++ "] "
   where
     -- -3 for the brackets and space
     n = width - 3 - (length header + length date)
-    space = take n $ repeat ' '
+    space = replicate n ' '
 
 -- TODO: disable cursor?
 -- TODO: scrolling (in tmux) keeps the previous output
@@ -185,22 +184,20 @@ output header content = do
 -- CLI Args
 type Cmd = String
 
-data Conf
-  = Conf
-      { confCmd :: Cmd,
-        confPatterns :: [String],
-        confInterval :: Int,
-        confContinueOnError :: Bool
-      }
+data Conf = Conf
+  { confCmd :: Cmd,
+    confPatterns :: [String],
+    confInterval :: Int,
+    confContinueOnError :: Bool
+  }
   deriving (Show)
 
-data Env
-  = Env
-      { envCmd :: Cmd,
-        envMatchers :: [Matcher],
-        envInterval :: Int,
-        envContinueOnError :: Bool
-      }
+data Env = Env
+  { envCmd :: Cmd,
+    envMatchers :: [Matcher],
+    envInterval :: Int,
+    envContinueOnError :: Bool
+  }
   deriving (Show)
 
 confP :: Opt.ParserInfo Conf
@@ -216,13 +213,14 @@ confP =
         <*> Opt.switch (Opt.long "continue-on-error" <> Opt.help "Keep trying if CMD exits with non zero result")
     headerText :: Maybe Doc.Doc
     headerText =
-      Just $ Doc.string $
-        intercalate
-          "\n"
-          [ "till v0.0.1\n",
-            "Execute a command until it's output matches certain conditions.\n",
-            "Project's Home Page: https://github.com/gilchristian/till"
-          ]
+      Just $
+        Doc.string $
+          intercalate
+            "\n"
+            [ "till v0.0.1\n",
+              "Execute a command until it's output matches certain conditions.\n",
+              "Project's Home Page: https://github.com/gilchristian/till"
+            ]
 
 parseArgs :: Opt.ParserInfo a -> IO a
 parseArgs =
@@ -249,6 +247,6 @@ toParagraph = unlines . fmap show
 runCli :: IO ()
 runCli = do
   conf <- parseArgs confP
-  case accEithers toParagraph $ fmap (simpleParse matcher) $ confPatterns conf of
+  case accEithers toParagraph $ parse matcher <$> confPatterns conf of
     Right matchers -> check $ confToEnv conf matchers
     Left errors -> die errors
