@@ -4,6 +4,7 @@ use std::time::Duration;
 use till::engine::Engine;
 use till::interpreters::cli::{CliExec, SystemClock, TokioSleeper};
 use till::matchers::{parse_matcher, run_matchers, Matcher};
+use till::notifications::{notify_error, notify_match_found};
 use till::ui;
 
 #[derive(Parser)]
@@ -61,6 +62,7 @@ async fn main() -> anyhow::Result<()> {
             if !out.stderr.trim().is_empty() {
                 eprintln!("{}", out.stderr);
             }
+            notify_error(&args.cmd, out.status);
             std::process::exit(out.status);
         }
 
@@ -72,6 +74,7 @@ async fn main() -> anyhow::Result<()> {
         if run_matchers(&matchers, &lines) {
             println!();
             println!("Found match, exiting ...");
+            notify_match_found(&args.cmd);
             break;
         }
 
